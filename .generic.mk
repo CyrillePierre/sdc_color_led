@@ -47,14 +47,17 @@ OBJS = $(SOURCE_OBJS) $(wildcard $(OBJECT_FILES))
 DEPS = gen_deps $(SOURCE_OBJS:.o=.d)
 
 # Define some useful variables.
-DEP_OPT = $(shell if `$(COMPILER) --version | grep "GCC" >/dev/null`; then echo "-MM -MP"; else echo "-M"; fi )
-DEPEND = $(COMPILER) $(DEP_OPT) $(FLAGS) $(INCLUDES)
-DEPEND.d = $(subst -g,, $(DEPEND))
-COMPILE = $(COMPILER) $(FLAGS) $(INCLUDES) -c
-LINK = $(COMPILER) $(FLAGS)
+DEP_OPT = $(shell if `$(CCOMPILER) --version | grep "GCC" >/dev/null`; then echo "-MM -MP"; else echo "-M"; fi )
+DEPENDC     = $(CCOMPILER) $(DEP_OPT) $(FLAGS) $(INCLUDES)
+DEPENDCPP   = $(CXXCOMPILER) $(DEP_OPT) $(FLAGS) $(CPPFLAGS) $(INCLUDES)
+DEPEND.d = $(subst -g,, $(DEPENDC))
+COMPILEC    = $(CCOMPILER) $(FLAGS) $(INCLUDES) -c
+COMPILECPP  = $(CXXCOMPILER) $(FLAGS) $(CPPFLAGS) $(INCLUDES) -c
+LINK = $(CXXCOMPILER) $(FLAGS) $(CPPFLAGS)
 
 ifneq ($(filter $(MAKECMDGOALS), lib),)
-COMPILE += -fPIC
+COMPILEC    += -fPIC
+COMPILECPP  += -fPIC
 endif
 
 # Compute progress
@@ -84,6 +87,7 @@ ifneq ($(OBJS),)
 	@$(LINK) $(OBJS) $(LIBS) -o $@
 	@$(CHOWN) $@
 	@$(ECHO) Linking $@
+	@$(SHOWSIZE)
 endif
 
 $(dir $(PROGRAM)):
@@ -112,17 +116,17 @@ lib: $(DEPS) $(OBJS)
 #----------------------------------------
 
 %.o:%.c
-	@$(COMPILE) $< -o $@
+	@$(COMPILEC) $< -o $@
 	@$(CHOWN) $@
 	@$(ECHO) Compiling $<
 
 %.o:%.cpp
-	@$(COMPILE) $< -o $@
+	@$(COMPILECPP) $< -o $@
 	@$(CHOWN) $@
 	@$(ECHO) Compiling $<
 
 %.o:%.S
-	@$(COMPILE) $< -o $@
+	@$(COMPILECPP) $< -o $@
 	@$(CHOWN) $@
 	@$(ECHO) Compiling $<
 
@@ -131,15 +135,15 @@ lib: $(DEPS) $(OBJS)
 #------------------------------------------
 
 %.d:%.c
-	@$(DEPEND) -MT $(basename $@).o $*.c > $*.d
+	@$(DEPENDC) -MT $(basename $@).o $*.c > $*.d
 	@$(CHOWN) $@
 
 %.d:%.cpp
-	@$(DEPEND) -MT $(basename $@).o $*.cpp > $*.d
+	@$(DEPENDCPP) -MT $(basename $@).o $*.cpp > $*.d
 	@$(CHOWN) $@
 
 %.d:%.S
-	@$(DEPEND) -MT $(basename $@).o $*.S > $*.d
+	@$(DEPENDCPP) -MT $(basename $@).o $*.S > $*.d
 	@$(CHOWN) $@
 
 #-------------------
@@ -147,7 +151,7 @@ lib: $(DEPS) $(OBJS)
 #-------------------
 
 clean:
-	@$(RM) $(OBJS) $(PROGRAM)
+	@$(RM) $(OBJS) $(PROGRAM) $(PROGRAM:.elf=.bin) $(PROGRAM:.elf=.hex) build/*.a
 
 distclean: clean
 	@$(RM) $(DEPS) $(DEPS:%.d=%.d.*)
@@ -187,22 +191,27 @@ help:
 #-------------------------------------
 
 show:
-	@echo -e "INCLUDES_DIRS : $(ALL_INCLUDES_DIRS)\n"
-	@echo -e "HEADERS : $(HEADERS)\n"
-	@echo -e "SOURCES : $(SOURCES)\n"
-	@echo -e "PROGRAM : $(PROGRAM)\n"
-	@echo -e "SOURCES_DIRS : $(ALL_SOURCES_DIRS)\n"
-	@echo -e "EXCLUDE_DIRS : $(EXPANDED_EXCLUDE_DIRS)\n"
-	@echo -e "OBJS : $(OBJS)\n"
-	@echo -e "DEPS : $(DEPS)\n"
-	@echo -e "DEPEND : $(DEPEND)\n"
-	@echo -e "COMPILE : $(COMPILE)\n"
-	@echo -e "LINK : $(LINK)\n"
-	@echo -e "INCLUDES : $(INCLUDES)\n"
-	@echo -e "TESTS_SOURCES_DIRS : $(TESTS_SOURCES_DIRS)\n"
-	@echo -e "TESTS_SOURCES : $(TESTS_SOURCES)\n"
-	@echo -e "TESTS_OBJS : $(TESTS_OBJS)\n"
-	@echo -e "TESTS_DEPS : $(TESTS_DEPS)\n"
+	@echo -e "INCLUDES_DIRS: $(INCLUDES_DIRS)\n"
+	@echo -e "INCLUDES_DIRS: $(ALL_INCLUDES_DIRS)\n"
+	@echo -e "HEADERS: $(HEADERS)\n"
+	@echo -e "SOURCES: $(SOURCES)\n"
+	@echo -e "PROGRAM: $(PROGRAM)\n"
+	@echo -e "SOURCES_DIRS: $(SOURCES_DIRS)\n"
+	@echo -e "SOURCES_DIRS: $(ALL_SOURCES_DIRS)\n"
+	@echo -e "EXCLUDE_DIRS: $(EXPANDED_EXCLUDE_DIRS)\n"
+	@echo -e "OBJS: $(OBJS)\n"
+	@echo -e "DEPS: $(DEPS)\n"
+	@echo -e "DEPENDC: $(DEPENDC)\n"
+	@echo -e "DEPENDCPP:  $(DEPENDCPP)\n"
+	@echo -e "COMPILEC: $(COMPILEC)\n"
+	@echo -e "COMPILECPP: $(COMPILECPP)\n"
+	@echo -e "LINK: $(LINK)\n"
+	@echo -e "INCLUDES: $(INCLUDES)\n"
+	@echo -e "TESTS_SOURCES_DIRS: $(TESTS_SOURCES_DIRS)\n"
+	@echo -e "TESTS_SOURCES: $(TESTS_SOURCES)\n"
+	@echo -e "TESTS_OBJS: $(TESTS_OBJS)\n"
+	@echo -e "TESTS_DEPS: $(TESTS_DEPS)\n"
+	@echo -e "LIBS: $(LIBS)\n"
 
 ##=============================
 ## End of the Makefile

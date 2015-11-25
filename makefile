@@ -38,3 +38,6 @@ clean:
 
 purge:
 	@$(DOCKER) distclean
+
+%:
+	@$(DOCKER) $@
